@@ -75,12 +75,9 @@ Resources:
                 - amplify.amazonaws.com
             Action:
               - sts:AssumeRole
-            Condition:
-              StringEquals:
-                aws:SourceAccount: !Ref AWS::AccountId
       Path: /
       ManagedPolicyArns:
-        - "arn:aws:iam::aws:policy/AdministratorAccess" 
+        - "arn:aws:iam::aws:policy/AdministratorAccess"
 
   AmplifyApp:
     Type: "AWS::Amplify::App"
