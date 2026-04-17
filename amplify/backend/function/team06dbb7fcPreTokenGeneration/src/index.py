@@ -7,6 +7,8 @@ from botocore.exceptions import ClientError
 import boto3
 import json
 
+IDC_REGION = os.environ.get("IDC_REGION") or os.environ.get("AWS_REGION")
+
 team_admin_group = os.getenv("TEAM_ADMIN_GROUP")
 team_auditor_group = os.getenv("TEAM_AUDITOR_GROUP")
 settings_table_name = os.getenv("SETTINGS_TABLE_NAME")
@@ -33,7 +35,7 @@ def get_team_groups():
 
 
 def get_identity_store_id():
-    client = boto3.client('sso-admin')
+    client = boto3.client('sso-admin', region_name=IDC_REGION)
     try:
         response = client.list_instances()
         return response['Instances'][0]['IdentityStoreId']
@@ -46,7 +48,7 @@ sso_instance = get_identity_store_id()
 
 def get_user(username):
     try:
-        client = boto3.client('identitystore')
+        client = boto3.client('identitystore', region_name=IDC_REGION)
         response = client.get_user_id(
             IdentityStoreId=sso_instance,
             AlternateIdentifier={
@@ -63,7 +65,7 @@ def get_user(username):
 
 def get_group(group):
     try:
-        client = boto3.client('identitystore')
+        client = boto3.client('identitystore', region_name=IDC_REGION)
         response = client.get_group_id(
             IdentityStoreId=sso_instance,
             AlternateIdentifier={
@@ -81,7 +83,7 @@ def get_group(group):
 
 def list_idc_group_membership(userId):
     try:
-        client = boto3.client('identitystore')
+        client = boto3.client('identitystore', region_name=IDC_REGION)
         p = client.get_paginator('list_group_memberships_for_member')
         paginator = p.paginate(IdentityStoreId=sso_instance,
             MemberId={

@@ -10,7 +10,9 @@ from operator import itemgetter
 import requests
 from requests_aws_sign import AWSV4Sign
 
-client = boto3.client('sso-admin')
+IDC_REGION = os.environ.get("IDC_REGION") or os.environ.get("AWS_REGION")
+
+client = boto3.client('sso-admin', region_name=IDC_REGION)
 
 ACCOUNT_ID = os.environ['ACCOUNT_ID']
 
@@ -57,7 +59,7 @@ def publishPermissions(result):
     return result
 
 def list_existing_sso_instances():
-    client = boto3.client('sso-admin')
+    client = boto3.client('sso-admin', region_name=IDC_REGION)
     try:
         response = client.list_instances()
         return response['Instances'][0]

@@ -40,6 +40,10 @@ Parameters:
     Type: Number
     Description: Cache TTL in seconds for OU accounts cache
     Default: 604800
+  idcRegion:
+    Type: String
+    Description: AWS region where IAM Identity Center lives. Leave blank if IdC is in the same region as this stack.
+    Default: ""
 
 Conditions:
   IsEmptyCloudTrailAuditLogs: !Equals [!Ref CloudTrailAuditLogs, ""]
@@ -170,6 +174,8 @@ Resources:
           Value: !Ref customAmplifyDomain
         - Name: CACHE_TTL
           Value: !Ref cacheTTL
+        - Name: IDC_REGION
+          Value: !Ref idcRegion
         - Name: _CUSTOM_IMAGE
           Value: amplify:al2023
       Tags:

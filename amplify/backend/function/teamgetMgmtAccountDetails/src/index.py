@@ -2,14 +2,17 @@
 # This AWS Content is provided subject to the terms of the AWS Customer Agreement available at
 # http: // aws.amazon.com/agreement or other written agreement between Customer and either
 # Amazon Web Services, Inc. or Amazon Web Services EMEA SARL or both.
+import os
 import json
 import boto3
 from botocore.exceptions import ClientError
 
-client = boto3.client('sso-admin')
+IDC_REGION = os.environ.get("IDC_REGION") or os.environ.get("AWS_REGION")
+
+client = boto3.client('sso-admin', region_name=IDC_REGION)
 
 def list_existing_sso_instances():
-    client = boto3.client('sso-admin')
+    client = boto3.client('sso-admin', region_name=IDC_REGION)
     try:
         response = client.list_instances()
         return response['Instances'][0]
