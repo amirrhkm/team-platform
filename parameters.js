@@ -6,7 +6,17 @@
 const fs = require("fs");
 const path = require("path");
 
-const { AWS_APP_ID, AWS_BRANCH, SSO_LOGIN, TEAM_ADMIN_GROUP, TEAM_AUDITOR_GROUP, TAGS, CLOUDTRAIL_AUDIT_LOGS, TEAM_ACCOUNT, AMPLIFY_CUSTOM_DOMAIN } = process.env;
+const { AWS_APP_ID, AWS_BRANCH, SSO_LOGIN, TEAM_ADMIN_GROUP, TEAM_AUDITOR_GROUP, TAGS, CLOUDTRAIL_AUDIT_LOGS, TEAM_ACCOUNT, AMPLIFY_CUSTOM_DOMAIN, IDC_REGION } = process.env;
+
+const IDC_FUNCTIONS = [
+  "team06dbb7fcPreTokenGeneration",
+  "teamRouter",
+  "teamgetIdCGroups",
+  "teamgetUsers",
+  "teamGetPermissionSets",
+  "teamListGroups",
+  "teamgetMgmtAccountDetails",
+];
 
 async function update_auth_parameters() {
   console.log(`updating amplify config for branch "${AWS_BRANCH}"...`);
@@ -150,9 +160,26 @@ async function update_cloudtrail_parameters() {
   );
 }
 
+async function update_idc_region_parameters() {
+  console.log(`updating IDC_REGION for IdC-facing Lambda parameters.json files...`);
+
+  for (const fn of IDC_FUNCTIONS) {
+    const paramsPath = path.resolve(
+      `./amplify/backend/function/${fn}/parameters.json`
+    );
+    const existing = fs.existsSync(paramsPath)
+      ? JSON.parse(fs.readFileSync(paramsPath, "utf8"))
+      : {};
+    existing.idcRegion = IDC_REGION || "";
+    fs.writeFileSync(paramsPath, JSON.stringify(existing, null, 4));
+    console.log(`  ${fn}: idcRegion=${existing.idcRegion || "(empty)"}`);
+  }
+}
+
 update_auth_parameters();
 update_react_parameters();
 update_groups_parameters();
 update_router_parameters()
 update_tag_parameters();
 update_cloudtrail_parameters();
+update_idc_region_parameters();

@@ -62,6 +62,10 @@
     "customsnsNotificationTopicArn": {
       "Type": "String",
       "Default": "customsnsNotificationTopicArn"
+    },
+    "idcRegion": {
+      "Type": "String",
+      "Default": ""
     }
   },
   "Conditions": {
@@ -175,6 +179,9 @@
             },
             "FN_TEAMNOTIFICATIONS_ARN": {
               "Ref": "functionteamNotificationsArn"
+            },
+            "IDC_REGION": {
+              "Ref": "idcRegion"
             }
           }
         },

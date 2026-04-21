@@ -29,6 +29,10 @@
     },
     "teamAuditorGroup": {
       "Type": "String"
+    },
+    "idcRegion": {
+      "Type": "String",
+      "Default": ""
     }
   },
   "Conditions": {
@@ -103,6 +107,9 @@
             },
             "TEAM_AUDITOR_GROUP": {
               "Ref": "teamAuditorGroup"
+            },
+            "IDC_REGION": {
+              "Ref": "idcRegion"
             }
           }
         },

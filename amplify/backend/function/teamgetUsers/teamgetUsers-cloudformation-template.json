@@ -23,6 +23,10 @@
     "apiteamGraphQLAPIEndpointOutput": {
       "Type": "String",
       "Default": "apiteamGraphQLAPIEndpointOutput"
+    },
+    "idcRegion": {
+      "Type": "String",
+      "Default": ""
     }
   },
   "Conditions": {
@@ -86,6 +90,9 @@
             },
             "API_TEAM_GRAPHQLAPIENDPOINTOUTPUT": {
               "Ref": "apiteamGraphQLAPIEndpointOutput"
+            },
+            "IDC_REGION": {
+              "Ref": "idcRegion"
             }
           }
         },

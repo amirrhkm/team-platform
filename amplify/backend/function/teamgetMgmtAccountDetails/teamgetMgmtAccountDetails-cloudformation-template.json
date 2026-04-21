@@ -15,6 +15,10 @@
     },
     "s3Key": {
       "Type": "String"
+    },
+    "idcRegion": {
+      "Type": "String",
+      "Default": ""
     }
   },
   "Conditions": {
@@ -72,6 +76,9 @@
             },
             "REGION": {
               "Ref": "AWS::Region"
+            },
+            "IDC_REGION": {
+              "Ref": "idcRegion"
             }
           }
         },

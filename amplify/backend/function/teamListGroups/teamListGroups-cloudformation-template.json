@@ -19,6 +19,10 @@
     "functionteamapplicationboto3layerArn": {
       "Type": "String",
       "Default": "functionteamapplicationboto3layerArn"
+    },
+    "idcRegion": {
+      "Type": "String",
+      "Default": ""
     }
   },
   "Conditions": {
@@ -76,6 +80,9 @@
             },
             "REGION": {
               "Ref": "AWS::Region"
+            },
+            "IDC_REGION": {
+              "Ref": "idcRegion"
             }
           }
         },
