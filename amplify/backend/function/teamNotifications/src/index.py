@@ -36,7 +36,6 @@ def send_ses_notification(
     source_email, source_arn, subject, message_html, to_addresses, cc_addresses
 ):
     try:
-        # Providing a source arn enables using an SES identity in another account
         if source_arn:
             ses_region = parse_arn(source_arn)["region"]
             ses_client = session.client("ses", region_name=ses_region)
