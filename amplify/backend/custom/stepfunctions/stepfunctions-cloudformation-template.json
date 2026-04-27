@@ -12,6 +12,14 @@
       "Type": "String",
       "Description": "Input parameter describing Arn attribute for function/teamNotifications resource"
     },
+    "functionteamGrantAssignmentArn": {
+      "Type": "String",
+      "Description": "Input parameter describing Arn attribute for function/teamGrantAssignment resource"
+    },
+    "functionteamRevokeAssignmentArn": {
+      "Type": "String",
+      "Description": "Input parameter describing Arn attribute for function/teamRevokeAssignment resource"
+    },
     "customsnsNotificationTopicArn": {
       "Type": "String",
       "Description": "Input parameter describing NotificationTopicArn attribute for custom/sns resource"
@@ -79,18 +87,29 @@
               ],
               "Next": "Update Request Status - in progress",
               "Parameters": {
-                "InstanceArn.$": "$.instanceARN",
-                "PermissionSetArn.$": "$.roleId",
-                "PrincipalId.$": "$.userId",
-                "PrincipalType": "USER",
-                "TargetId.$": "$.accountId",
-                "TargetType": "AWS_ACCOUNT"
+                "FunctionName.$": "$.fn_teamgrantassignment_arn",
+                "Payload": {
+                  "InstanceArn.$": "$.instanceARN",
+                  "PermissionSetArn.$": "$.roleId",
+                  "PrincipalId.$": "$.userId",
+                  "PrincipalType": "USER",
+                  "TargetId.$": "$.accountId",
+                  "TargetType": "AWS_ACCOUNT"
+                }
               },
-              "Resource": "arn:aws:states:::aws-sdk:ssoadmin:createAccountAssignment",
+              "Resource": "arn:aws:states:::lambda:invoke",
+              "ResultSelector": {
+                "AccountAssignmentCreationStatus.$": "$.Payload.AccountAssignmentCreationStatus"
+              },
               "ResultPath": "$.grant",
               "Retry": [
                 {
-                  "ErrorEquals": ["SsoAdmin.ThrottlingException", "ThrottlingException", "ServiceUnavailable", "InternalServerError"],
+                  "ErrorEquals": [
+                    "Lambda.ServiceException",
+                    "Lambda.AWSLambdaException",
+                    "Lambda.SdkClientException",
+                    "Lambda.TooManyRequestsException"
+                  ],
                   "IntervalSeconds": 3,
                   "BackoffRate": 2,
                   "MaxAttempts": 5
@@ -608,18 +627,29 @@
               ],
               "Next": "Notify Requester Session Ended",
               "Parameters": {
-                "InstanceArn.$": "$.instanceARN",
-                "PermissionSetArn.$": "$.roleId",
-                "PrincipalId.$": "$.userId",
-                "PrincipalType": "USER",
-                "TargetId.$": "$.accountId",
-                "TargetType": "AWS_ACCOUNT"
+                "FunctionName.$": "$.fn_teamrevokeassignment_arn",
+                "Payload": {
+                  "InstanceArn.$": "$.instanceARN",
+                  "PermissionSetArn.$": "$.roleId",
+                  "PrincipalId.$": "$.userId",
+                  "PrincipalType": "USER",
+                  "TargetId.$": "$.accountId",
+                  "TargetType": "AWS_ACCOUNT"
+                }
               },
-              "Resource": "arn:aws:states:::aws-sdk:ssoadmin:deleteAccountAssignment",
+              "Resource": "arn:aws:states:::lambda:invoke",
+              "ResultSelector": {
+                "AccountAssignmentDeletionStatus.$": "$.Payload.AccountAssignmentDeletionStatus"
+              },
               "ResultPath": "$.revoke",
               "Retry": [
                 {
-                  "ErrorEquals": ["SsoAdmin.ThrottlingException", "ThrottlingException", "ServiceUnavailable", "InternalServerError"],
+                  "ErrorEquals": [
+                    "Lambda.ServiceException",
+                    "Lambda.AWSLambdaException",
+                    "Lambda.SdkClientException",
+                    "Lambda.TooManyRequestsException"
+                  ],
                   "IntervalSeconds": 3,
                   "BackoffRate": 2,
                   "MaxAttempts": 5
@@ -1078,6 +1108,13 @@
                 },
                 {
                   "Effect": "Allow",
+                  "Action": ["lambda:InvokeFunction"],
+                  "Resource": {
+                    "Ref": "functionteamGrantAssignmentArn"
+                  }
+                },
+                {
+                  "Effect": "Allow",
                   "Action": ["dynamodb:UpdateItem"],
                   "Resource": {
                     "Fn::Sub": "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/requests*"
@@ -1175,6 +1212,13 @@
                   "Effect": "Allow",
                   "Action": ["sso:DeleteAccountAssignment"],
                   "Resource": "*"
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": ["lambda:InvokeFunction"],
+                  "Resource": {
+                    "Ref": "functionteamRevokeAssignmentArn"
+                  }
                 },
                 {
                   "Effect": "Allow",

@@ -1,0 +1,6 @@
+[
+  {
+    "Action": ["sso:DeleteAccountAssignment", "sso:DescribeAccountAssignmentDeletionStatus"],
+    "Resource": ["*"]
+  }
+]

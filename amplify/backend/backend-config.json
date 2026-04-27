@@ -129,6 +129,20 @@
           ],
           "category": "function",
           "resourceName": "teamNotifications"
+        },
+        {
+          "attributes": [
+            "Arn"
+          ],
+          "category": "function",
+          "resourceName": "teamGrantAssignment"
+        },
+        {
+          "attributes": [
+            "Arn"
+          ],
+          "category": "function",
+          "resourceName": "teamRevokeAssignment"
         }
       ],
       "providerPlugin": "awscloudformation",
@@ -265,8 +279,32 @@
           ],
           "category": "function",
           "resourceName": "teamNotifications"
+        },
+        {
+          "attributes": [
+            "Arn"
+          ],
+          "category": "function",
+          "resourceName": "teamGrantAssignment"
+        },
+        {
+          "attributes": [
+            "Arn"
+          ],
+          "category": "function",
+          "resourceName": "teamRevokeAssignment"
         }
       ],
+      "providerPlugin": "awscloudformation",
+      "service": "Lambda"
+    },
+    "teamGrantAssignment": {
+      "build": true,
+      "providerPlugin": "awscloudformation",
+      "service": "Lambda"
+    },
+    "teamRevokeAssignment": {
+      "build": true,
       "providerPlugin": "awscloudformation",
       "service": "Lambda"
     },
@@ -770,6 +808,38 @@
         {
           "category": "function",
           "resourceName": "teamqueryLogs"
+        }
+      ]
+    },
+    "AMPLIFY_function_teamGrantAssignment_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "teamGrantAssignment"
+        }
+      ]
+    },
+    "AMPLIFY_function_teamGrantAssignment_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "teamGrantAssignment"
+        }
+      ]
+    },
+    "AMPLIFY_function_teamRevokeAssignment_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "teamRevokeAssignment"
+        }
+      ]
+    },
+    "AMPLIFY_function_teamRevokeAssignment_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "teamRevokeAssignment"
         }
       ]
     },
