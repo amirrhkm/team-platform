@@ -59,6 +59,14 @@
       "Type": "String",
       "Default": "functionteamNotificationsArn"
     },
+    "functionteamGrantAssignmentArn": {
+      "Type": "String",
+      "Default": "functionteamGrantAssignmentArn"
+    },
+    "functionteamRevokeAssignmentArn": {
+      "Type": "String",
+      "Default": "functionteamRevokeAssignmentArn"
+    },
     "customsnsNotificationTopicArn": {
       "Type": "String",
       "Default": "customsnsNotificationTopicArn"
@@ -179,6 +187,12 @@
             },
             "FN_TEAMNOTIFICATIONS_ARN": {
               "Ref": "functionteamNotificationsArn"
+            },
+            "FN_TEAMGRANTASSIGNMENT_ARN": {
+              "Ref": "functionteamGrantAssignmentArn"
+            },
+            "FN_TEAMREVOKEASSIGNMENT_ARN": {
+              "Ref": "functionteamRevokeAssignmentArn"
             },
             "IDC_REGION": {
               "Ref": "idcRegion"

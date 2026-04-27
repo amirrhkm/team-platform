@@ -16,6 +16,8 @@ const IDC_FUNCTIONS = [
   "teamGetPermissionSets",
   "teamListGroups",
   "teamgetMgmtAccountDetails",
+  "teamGrantAssignment",
+  "teamRevokeAssignment",
 ];
 
 async function update_auth_parameters() {

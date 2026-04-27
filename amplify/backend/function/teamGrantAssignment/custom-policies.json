@@ -1,0 +1,6 @@
+[
+  {
+    "Action": ["sso:CreateAccountAssignment", "sso:DescribeAccountAssignmentCreationStatus"],
+    "Resource": ["*"]
+  }
+]
