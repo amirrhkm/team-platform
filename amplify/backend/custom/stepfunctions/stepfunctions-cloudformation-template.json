@@ -146,11 +146,11 @@
                   "ErrorEquals": [
                     "States.ALL"
                   ],
-                  "Next": "Wait",
+                  "Next": "Init Tick",
                   "ResultPath": "$.error"
                 }
               ],
-              "Next": "Wait",
+              "Next": "Init Tick",
               "Parameters": {
                 "FunctionName.$": "$.fn_teamnotifications_arn",
                 "Payload.$": "$"
@@ -171,6 +171,81 @@
                 }
               ],
               "Type": "Task"
+            },
+            "Init Tick": {
+              "Type": "Pass",
+              "Parameters": {
+                "elapsed": 0,
+                "durationSeconds.$": "States.StringToJson($.duration)"
+              },
+              "ResultPath": "$.tick",
+              "Next": "Wait Tick"
+            },
+            "Wait Tick": {
+              "Type": "Wait",
+              "Seconds": 60,
+              "Next": "Poll Status"
+            },
+            "Poll Status": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::dynamodb:getItem",
+              "Parameters": {
+                "Key": {
+                  "id": {
+                    "S.$": "$.id"
+                  }
+                },
+                "TableName.$": "$.requests_table"
+              },
+              "ResultPath": "$.activeStatus",
+              "Next": "Status Active?"
+            },
+            "Status Active?": {
+              "Type": "Choice",
+              "Choices": [
+                {
+                  "Or": [
+                    {
+                      "Variable": "$.activeStatus.Item.status.S",
+                      "StringEquals": "revoked"
+                    },
+                    {
+                      "Variable": "$.activeStatus.Item.status.S",
+                      "StringEquals": "ended"
+                    },
+                    {
+                      "Variable": "$.activeStatus.Item.status.S",
+                      "StringEquals": "error"
+                    }
+                  ],
+                  "Next": "Skip Revoke"
+                }
+              ],
+              "Default": "Increment Elapsed"
+            },
+            "Skip Revoke": {
+              "Type": "Pass",
+              "End": true
+            },
+            "Increment Elapsed": {
+              "Type": "Pass",
+              "Parameters": {
+                "elapsed.$": "States.MathAdd($.tick.elapsed, 60)",
+                "durationSeconds.$": "$.tick.durationSeconds"
+              },
+              "ResultPath": "$.tick",
+              "Next": "Duration Reached?"
+            },
+            "Duration Reached?": {
+              "Type": "Choice",
+              "Choices": [
+                {
+                  "Variable": "$.tick.elapsed",
+                  "NumericGreaterThanEqualsPath": "$.tick.durationSeconds",
+                  "Next": "Revoke Permission"
+                }
+              ],
+              "Default": "Wait Tick"
             },
             "Revoke Permission": {
               "End": true,
@@ -203,11 +278,6 @@
                 }
               ],
               "Type": "Task"
-            },
-            "Wait": {
-              "Next": "Revoke Permission",
-              "SecondsPath": "$.duration",
-              "Type": "Wait"
             }
           }
         },
@@ -673,12 +743,20 @@
                 {
                   "And": [
                     {
-                      "StringEquals": "revoked",
-                      "Variable": "$.data.Item.status.S "
+                      "IsPresent": true,
+                      "Variable": "$.data.Item"
                     },
                     {
-                      "IsPresent": true,
-                      "Variable": "$.result"
+                      "Or": [
+                        {
+                          "StringEquals": "revoked",
+                          "Variable": "$.data.Item.status.S"
+                        },
+                        {
+                          "StringEquals": "ended",
+                          "Variable": "$.data.Item.status.S"
+                        }
+                      ]
                     }
                   ],
                   "Next": "Pass"
@@ -771,11 +849,11 @@
                   "ErrorEquals": [
                     "States.ALL"
                   ],
-                  "Next": "Wait",
+                  "Next": "Init Tick",
                   "ResultPath": "$.error"
                 }
               ],
-              "Next": "Wait",
+              "Next": "Init Tick",
               "Parameters": {
                 "FunctionName.$": "$.fn_teamnotifications_arn",
                 "Payload.$": "$"
@@ -783,6 +861,40 @@
               "Resource": "arn:aws:states:::lambda:invoke",
               "ResultPath": "$.lastTaskResult",
               "Type": "Task"
+            },
+            "Init Tick": {
+              "Type": "Pass",
+              "Parameters": {
+                "elapsed": 0,
+                "expireSeconds.$": "$.expire"
+              },
+              "ResultPath": "$.tick",
+              "Next": "Wait Tick"
+            },
+            "Wait Tick": {
+              "Type": "Wait",
+              "Seconds": 300,
+              "Next": "DynamoDB GetStatus"
+            },
+            "Increment Elapsed": {
+              "Type": "Pass",
+              "Parameters": {
+                "elapsed.$": "States.MathAdd($.tick.elapsed, 300)",
+                "expireSeconds.$": "$.tick.expireSeconds"
+              },
+              "ResultPath": "$.tick",
+              "Next": "Expire Reached?"
+            },
+            "Expire Reached?": {
+              "Type": "Choice",
+              "Choices": [
+                {
+                  "Variable": "$.tick.elapsed",
+                  "NumericGreaterThanEqualsPath": "$.tick.expireSeconds",
+                  "Next": "Update Request Status"
+                }
+              ],
+              "Default": "Wait Tick"
             },
             "Notify Requester Expired": {
               "Catch": [
@@ -810,7 +922,7 @@
             "Pending?": {
               "Choices": [
                 {
-                  "Next": "Update Request Status",
+                  "Next": "Increment Elapsed",
                   "StringEquals": "pending",
                   "Variable": "$.result.Item.status.S"
                 }
@@ -846,11 +958,6 @@
               "Next": "Notify Requester Expired",
               "Result": "expired",
               "ResultPath": "$.status"
-            },
-            "Wait": {
-              "Next": "DynamoDB GetStatus",
-              "SecondsPath": "$.expire",
-              "Type": "Wait"
             }
           }
         },
@@ -1115,7 +1222,7 @@
                 },
                 {
                   "Effect": "Allow",
-                  "Action": ["dynamodb:UpdateItem"],
+                  "Action": ["dynamodb:UpdateItem", "dynamodb:GetItem"],
                   "Resource": {
                     "Fn::Sub": "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/requests*"
                   }
