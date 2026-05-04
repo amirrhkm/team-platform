@@ -1,0 +1,90 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Sets CloudWatch Logs retention on TEAM backend log groups (Lambda + AppSync). Excludes Step Functions and CloudTrail data store.",
+  "Parameters": {
+    "env": {
+      "Type": "String"
+    },
+    "retentionDays": {
+      "Type": "Number",
+      "Default": 90,
+      "Description": "Retention in days to apply to TEAM backend log groups."
+    }
+  },
+  "Resources": {
+    "LogRetentionLambdaRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": {
+          "Fn::Join": ["", ["team-log-retention-lambda-role", "-", { "Ref": "env" }]]
+        },
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": { "Service": "lambda.amazonaws.com" },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "ManagedPolicyArns": [
+          "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+        ],
+        "Policies": [
+          {
+            "PolicyName": "LogRetentionPermissions",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:DescribeLogGroups",
+                    "logs:PutRetentionPolicy",
+                    "logs:DeleteRetentionPolicy"
+                  ],
+                  "Resource": "*"
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "appsync:ListGraphqlApis"
+                  ],
+                  "Resource": "*"
+                }
+              ]
+            }
+          }
+        ],
+        "Path": "/"
+      }
+    },
+    "LogRetentionLambda": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Architectures": ["arm64"],
+        "Runtime": "python3.10",
+        "FunctionName": {
+          "Fn::Join": ["", ["team-log-retention", "-", { "Ref": "env" }]]
+        },
+        "Role": { "Fn::GetAtt": ["LogRetentionLambdaRole", "Arn"] },
+        "Handler": "index.handler",
+        "Description": "Applies CloudWatch Logs retention to TEAM backend log groups.",
+        "Timeout": 300,
+        "Code": {
+          "ZipFile": "import boto3\nimport cfnresponse\n\nlogs = boto3.client('logs')\nappsync = boto3.client('appsync')\n\n# Log group names to skip even if they match the prefix filter.\n# Step Functions retention is managed by its own CFN template (14 days).\nSKIP_PREFIXES = (\n    '/aws/stepfunction/team-step-function/',\n)\n\n\ndef _iter_log_groups(prefix):\n    paginator = logs.get_paginator('describe_log_groups')\n    for page in paginator.paginate(logGroupNamePrefix=prefix):\n        for lg in page.get('logGroups', []):\n            yield lg\n\n\ndef _team_lambda_log_groups(env):\n    suffix = '-' + env\n    for lg in _iter_log_groups('/aws/lambda/'):\n        name = lg['logGroupName']\n        # Match Amplify-created Lambda log groups for this TEAM env only:\n        # /aws/lambda/<funcName>-<env>\n        short = name[len('/aws/lambda/'):]\n        if (short.startswith('team') or short.startswith('Team')) and short.endswith(suffix):\n            yield name\n\n\ndef _team_appsync_log_groups(env):\n    api_name = 'team-' + env\n    api_ids = []\n    next_token = None\n    while True:\n        kwargs = {'maxResults': 25}\n        if next_token:\n            kwargs['nextToken'] = next_token\n        resp = appsync.list_graphql_apis(**kwargs)\n        for api in resp.get('graphqlApis', []):\n            if api.get('name') == api_name:\n                api_ids.append(api['apiId'])\n        next_token = resp.get('nextToken')\n        if not next_token:\n            break\n    for api_id in api_ids:\n        prefix = '/aws/appsync/apis/' + api_id\n        # exact log group is /aws/appsync/apis/<apiId>\n        for lg in _iter_log_groups(prefix):\n            yield lg['logGroupName']\n\n\ndef _apply(retention_days, env):\n    applied = []\n    for name in _team_lambda_log_groups(env):\n        if any(name.startswith(p) for p in SKIP_PREFIXES):\n            continue\n        logs.put_retention_policy(logGroupName=name, retentionInDays=retention_days)\n        applied.append(name)\n    for name in _team_appsync_log_groups(env):\n        logs.put_retention_policy(logGroupName=name, retentionInDays=retention_days)\n        applied.append(name)\n    return applied\n\n\ndef handler(event, context):\n    try:\n        if event.get('RequestType') == 'Delete':\n            cfnresponse.send(event, context, cfnresponse.SUCCESS, {'Data': 'Delete: noop'})\n            return\n\n        props = event.get('ResourceProperties', {}) or {}\n        retention_days = int(props.get('retentionDays', 90))\n        env = props.get('env', '')\n\n        applied = _apply(retention_days, env)\n        print('Applied retention {} days to {} log groups'.format(retention_days, len(applied)))\n        for n in applied:\n            print('  - ' + n)\n\n        cfnresponse.send(\n            event,\n            context,\n            cfnresponse.SUCCESS,\n            {'Count': len(applied), 'RetentionDays': retention_days},\n        )\n    except Exception as e:\n        print('Error: {}'.format(e))\n        cfnresponse.send(event, context, cfnresponse.FAILED, {'Error': str(e)})\n"
+        }
+      }
+    },
+    "ApplyLogRetention": {
+      "Type": "Custom::ApplyTeamLogRetention",
+      "Properties": {
+        "ServiceToken": { "Fn::GetAtt": ["LogRetentionLambda", "Arn"] },
+        "env": { "Ref": "env" },
+        "retentionDays": { "Ref": "retentionDays" },
+        "version": "0.1"
+      }
+    }
+  }
+}

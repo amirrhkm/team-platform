@@ -97,6 +97,11 @@
       "providerPlugin": "awscloudformation",
       "service": "customCloudformation"
     },
+    "logRetention": {
+      "dependsOn": [],
+      "providerPlugin": "awscloudformation",
+      "service": "customCloudformation"
+    },
     "s3bucketSecurity": {
       "dependsOn": [],
       "providerPlugin": "awscloudformation",
