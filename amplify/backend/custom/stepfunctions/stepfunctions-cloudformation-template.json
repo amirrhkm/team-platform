@@ -146,11 +146,11 @@
                   "ErrorEquals": [
                     "States.ALL"
                   ],
-                  "Next": "Init Tick",
+                  "Next": "Convert Duration",
                   "ResultPath": "$.error"
                 }
               ],
-              "Next": "Init Tick",
+              "Next": "Convert Duration",
               "Parameters": {
                 "FunctionName.$": "$.fn_teamnotifications_arn",
                 "Payload.$": "$"
@@ -172,18 +172,17 @@
               ],
               "Type": "Task"
             },
-            "Init Tick": {
+            "Convert Duration": {
               "Type": "Pass",
               "Parameters": {
-                "elapsed": 0,
                 "durationSeconds.$": "States.StringToJson($.duration)"
               },
               "ResultPath": "$.tick",
-              "Next": "Wait Tick"
+              "Next": "Wait"
             },
-            "Wait Tick": {
+            "Wait": {
               "Type": "Wait",
-              "Seconds": 60,
+              "SecondsPath": "$.tick.durationSeconds",
               "Next": "Poll Status"
             },
             "Poll Status": {
@@ -198,6 +197,28 @@
                 "TableName.$": "$.requests_table"
               },
               "ResultPath": "$.activeStatus",
+              "Retry": [
+                {
+                  "ErrorEquals": [
+                    "DynamoDB.ProvisionedThroughputExceededException",
+                    "DynamoDB.ThrottlingException",
+                    "DynamoDB.InternalServerError",
+                    "States.TaskFailed"
+                  ],
+                  "IntervalSeconds": 2,
+                  "BackoffRate": 2,
+                  "MaxAttempts": 5
+                }
+              ],
+              "Catch": [
+                {
+                  "ErrorEquals": [
+                    "States.ALL"
+                  ],
+                  "Next": "Revoke Permission",
+                  "ResultPath": "$.pollStatusError"
+                }
+              ],
               "Next": "Status Active?"
             },
             "Status Active?": {
@@ -221,31 +242,11 @@
                   "Next": "Skip Revoke"
                 }
               ],
-              "Default": "Increment Elapsed"
+              "Default": "Revoke Permission"
             },
             "Skip Revoke": {
               "Type": "Pass",
               "End": true
-            },
-            "Increment Elapsed": {
-              "Type": "Pass",
-              "Parameters": {
-                "elapsed.$": "States.MathAdd($.tick.elapsed, 60)",
-                "durationSeconds.$": "$.tick.durationSeconds"
-              },
-              "ResultPath": "$.tick",
-              "Next": "Duration Reached?"
-            },
-            "Duration Reached?": {
-              "Type": "Choice",
-              "Choices": [
-                {
-                  "Variable": "$.tick.elapsed",
-                  "NumericGreaterThanEqualsPath": "$.tick.durationSeconds",
-                  "Next": "Revoke Permission"
-                }
-              ],
-              "Default": "Wait Tick"
             },
             "Revoke Permission": {
               "End": true,
